@@ -1,15 +1,8 @@
 #include <SoftwareSerial.h>
 #include "HX711.h"
+#include <Wire.h>
 
 HX711 scale;
-
-//// defines pins numbers
-//const int myRx = 6;
-//const int myTx = 7;
-//const int stepPin = 4; 
-//const int dirPin = 5; 
-//const int data = 3;
-//const int clk = 2; 
 
 // defines pins numbers
 const int myRx = 7;
@@ -29,6 +22,8 @@ const int distanceBetweenContainers = 20; // mm
 const int weightToleranceUnder100 = 1;
 const int weightToleranceAbove100 = 5;
 const double moveDeviation = 2;
+const char* openContainer = "o^";
+const char* closeContainer = "c^";
 
 // Variables
 bool finishedReadInput = false;
@@ -89,17 +84,37 @@ double check_if_enough_weight(int n, double wanted_weight)
     if (counter <= 2)
     {
       if (counter == 2)
-      calibration_weight = curr_weight;
-      curr_weight = 0;
+      {
+        calibration_weight = curr_weight;
+        
+        // open container num #
+        String outputToSlave = container;
+        outputToSlave += openContainer;
+        Wire.beginTransmission(9);
+        Wire.write(outputToSlave.c_str());
+       Wire.endTransmission();
+      }
+      curr_weight = 0; 
     }
     counter++;
     if (too_much <= 0) 
     {
+      //close container num #
+        String outputToSlave = container;
+        outputToSlave += closeContainer;
+        Wire.beginTransmission(9);
+        Wire.write(outputToSlave.c_str());
+        Wire.endTransmission();
       Serial.print("Timeout, wanted weight was not recieved \n");
       return -100;
     }
   }   
-
+  //close container num #
+  String outputToSlave = container;
+  outputToSlave += closeContainer;
+  Wire.beginTransmission(9);
+  Wire.write(outputToSlave.c_str());
+  Wire.endTransmission();
   return curr_weight;
 }
 
@@ -119,57 +134,19 @@ void goBack()
 void setup() {
   Serial.begin(9600); // Console
   bluetooth.begin(9600); // HC-06
+  Wire.begin(); 
 
-  // attachInterrupt(0, magnet_detect, LOW);//Initialize the intterrupt pin (Arduino digital pin 2)
   // Sets the two pins as Outputs
   pinMode(stepPin,OUTPUT); 
   pinMode(dirPin,OUTPUT);
-  //  Serial.write("Beginning\n");
-  //  Serial.println("HX711 Demo");
-  //
-  //  Serial.println("Initializing the scale");
-  // parameter "gain" is ommited; the default value 128 is used by the library
-  // HX711.DOUT  - pin #A1
-  // HX711.PD_SCK - pin #A0
+
   scale.begin(data, clk);
-  //
-  //  Serial.print("Raw ave(20): \t\t");
-  //  Serial.println(scale.read_average(20));   // print the average of 20 readings from the ADC
 
   // Scale factor:
   // 1Kg cell: 2020 for reading in gms
-  // 50kg cells: 19150 for reading in kg
   float factor = 2020 * 106.52 / 500;
   scale.set_scale(factor);                      // this value is obtained by calibrating the scale with known weights; see the README for details
   scale.tare();               // reset the scale to 0
-  //
-  //  Serial.println("\nAfter setting up the scale:");
-  //
-  //  Serial.print("Raw: \t\t\t");
-  //  Serial.println(scale.read());                 // print a raw reading from the ADC
-  //
-  //  Serial.print("Raw ave(20): \t\t");
-  //  Serial.println(scale.read_average(20));       // print the average of 20 readings from the ADC
-  //
-  //  Serial.print("Raw ave(5) - tare: \t");
-  //  Serial.println(scale.get_value(5));   // print the average of 5 readings from the ADC minus the tare weight, set with tare()
-  //
-  //  Serial.print("Calibrated ave(5): \t");
-  //  Serial.println(scale.get_units(5), 1);        // print the average of 5 readings from the ADC minus tare weight, divided
-  //  // by the SCALE parameter set with set_scale
-  //
-  //  Serial.println("\nReadings:");
-  //      int i = 0;
-  //      double sum = 0;
-  //    while (i < 20) {
-  //      double val = ((scale.read() - scale.get_offset()) / scale.get_scale());
-  //      sum += val;
-  //      i++;
-  //    }
-  //    
-  //    Serial.print("Readings: ");
-  //    Serial.print(sum / 20, 3);
-  //    Serial.print("gr \n");
 
   finishedReadInput = false;
   execCommand = false;
@@ -225,12 +202,14 @@ void loop() {
       if (dir == 'f')
       {
         container_int = container.toInt();
+        /*
         Serial.write("Container number:");
         Serial.println(container_int);
         Serial.write("\n");
         Serial.write("Prev Container number:");
         Serial.println(prevContainer);
         Serial.write("\n");
+        */
         containerDiff = container_int - prevContainer;
         int numSteps = (containerDiff * distanceBetweenContainers) * StepsPerMM;
         controlStepper(HIGH, numSteps);
