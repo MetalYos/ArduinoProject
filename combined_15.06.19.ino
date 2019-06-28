@@ -18,12 +18,11 @@ const int hall = 2;
 const int StepsPerRev = 200;
 const int Pitch = 2; // (linear movement per rotation) mm
 const int StepsPerMM = 100; // 100 steps
-const int distanceBetweenContainers = 20; // mm
+const int distanceBetweenContainers = 33; // mm
 const int weightToleranceUnder100 = 1;
 const int weightToleranceAbove100 = 5;
 const double moveDeviation = 2;
 const char* openContainer = "o^";
-const char* closeContainer = "c^";
 
 // Variables
 bool finishedReadInput = false;
@@ -65,7 +64,7 @@ double check_if_enough_weight(int n, double wanted_weight)
   double sum, curr_weight, val, calibration_weight;
   int too_much = 500;
   sum = curr_weight = val = calibration_weight =  0;
-  int tolerance = wanted_weight * 0.1;
+  int tolerance = wanted_weight * 0.2;
   int counter = 0;
   while ((wanted_weight > curr_weight + tolerance) || (wanted_weight < curr_weight - tolerance))
   {
@@ -87,34 +86,32 @@ double check_if_enough_weight(int n, double wanted_weight)
       {
         calibration_weight = curr_weight;
         
-        // open container num #
+        // open container num
         String outputToSlave = container;
         outputToSlave += openContainer;
         Wire.beginTransmission(9);
         Wire.write(outputToSlave.c_str());
-       Wire.endTransmission();
+        Wire.endTransmission();
       }
       curr_weight = 0; 
+    }
+    else
+    {
+        // open container
+        String outputToSlave = container;
+        outputToSlave += openContainer;
+        Wire.beginTransmission(9);
+        Wire.write(outputToSlave.c_str());
+        Wire.endTransmission();
     }
     counter++;
     if (too_much <= 0) 
     {
-      //close container num #
-        String outputToSlave = container;
-        outputToSlave += closeContainer;
-        Wire.beginTransmission(9);
-        Wire.write(outputToSlave.c_str());
-        Wire.endTransmission();
       Serial.print("Timeout, wanted weight was not recieved \n");
       return -100;
     }
   }   
-  //close container num #
-  String outputToSlave = container;
-  outputToSlave += closeContainer;
-  Wire.beginTransmission(9);
-  Wire.write(outputToSlave.c_str());
-  Wire.endTransmission();
+
   return curr_weight;
 }
 
@@ -202,30 +199,51 @@ void loop() {
       if (dir == 'f')
       {
         container_int = container.toInt();
-        /*
-        Serial.write("Container number:");
-        Serial.println(container_int);
-        Serial.write("\n");
-        Serial.write("Prev Container number:");
-        Serial.println(prevContainer);
-        Serial.write("\n");
-        */
-        containerDiff = container_int - prevContainer;
-        int numSteps = (containerDiff * distanceBetweenContainers) * StepsPerMM;
-        controlStepper(HIGH, numSteps);
-        //*********************************************************
-        char toPrint[20] = {0};
-        Serial.write("\nNumber of steps: ");
-        itoa(numSteps,toPrint,10);
-        Serial.write(toPrint);
-        Serial.write("\n");
-        //*********************************************************
-        totalSteps += numSteps;
-        prevContainer = container_int; 
+        // command, container order: 3 -> 1 -> 4 -> 2 -> 5 -> 6 -> 7
+        if (container_int == 1 || container_int == 2)
+        {
+          containerDiff = 1;
+        
+          //containerDiff = container_int - prevContainer;
+          int numSteps = (containerDiff * distanceBetweenContainers) * StepsPerMM;
+          controlStepper(HIGH, numSteps);
+          //*********************************************************
+          char toPrint[20] = {0};
+          Serial.write("\nNumber of steps: ");
+          itoa(numSteps,toPrint,10);
+          Serial.write(toPrint);
+          Serial.write("\n");
+          //*********************************************************
+          totalSteps += numSteps;
+          prevContainer = container_int; 
+        }
+        else{
+          if (container_int >= 3 && container_int <= 5)
+          {
+            String outputToSlave = container + ";";
+            outputToSlave += weight + "^";
+            Wire.beginTransmission(9);
+            Wire.write(outputToSlave.c_str());
+            Wire.endTransmission();
+
+            delay(20000);
+          }
+          else
+          {
+            String outputToSlave = container + "^";
+            Wire.beginTransmission(9);
+            Wire.write(outputToSlave.c_str());
+            Wire.endTransmission();
+          }
+          delay(5000);
+        }
       }
       else
       {
         goBack();
+
+        // Send the app that the dough is ready
+        bluetooth.println("!");
       }
       
       // Wait for command to continue
@@ -233,43 +251,50 @@ void loop() {
       //    {
       //      setup();
       //    }
-      Serial.print("weight to funcion ");
-      Serial.println(weight);
-      Serial.print("\n");
-      double recieved_weight = check_if_enough_weight(20, w_weight);
-      if (recieved_weight < 0)
+      if (container_int == 1 || container_int == 2)
       {
-        //close container, go back and update amounts in containers
-        finishedReadInput = false;
-        execCommand = false;
-      }
-      else 
-      {
-        Serial.print("Recieved weight: ");
-        Serial.print(recieved_weight, 3);
-        Serial.print("gr \n");
-        scale.tare();
-        //close hatch for good
-      }
-      
-      Serial.write("\nEnd Loop\n");
+        Serial.print("weight to funcion ");
+        Serial.println(weight);
+        Serial.print("\n");
+        double recieved_weight = check_if_enough_weight(20, w_weight);
+        if (recieved_weight < 0)
+        {
+          // go back and update amounts in containers
+          finishedReadInput = false;
+          execCommand = false;
+        }
+        else 
+        {
+          Serial.print("Recieved weight: ");
+          Serial.print(recieved_weight, 3);
+          Serial.print("gr \n");
+          scale.tare();
 
-      bluetooth.print(container);
-      bluetooth.print('$');
-      bluetooth.print(recieved_weight, 3);
-      bluetooth.print(';');
+          bluetooth.print(container);
+          bluetooth.print('$');
+          bluetooth.print(recieved_weight, 3);
+          bluetooth.print(';');
+
+          delay(2000);
+        }
+      }
       
       currentCommand += 7;
+
+      Serial.write("\nEnd Loop\n");
     }
     //bowl is not on the scale, pin shows HIGH
     else
     {
+      // Send message to app
+      bluetooth.println("bowl!");
+
+      // Wait for answer from user
       String answer = "";
       Serial.println("else");
       while (bluetooth.available())
       {
         answer = bluetooth.readString();
-        //Serial.println(answer);
         if (answer[0] == 'y')
         {
           Serial.println("I'm in");
