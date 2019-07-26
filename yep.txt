@@ -1,0 +1,35 @@
+Hardware:
+EVERYTHING! WE HAD NO IDEA WHAT WE WERE GETTING OURSELVES INTO!
+GRAINS ARE TERRIBLE! LIQUID IS EASY!
+WE BROKE A PART
+THAT'S WHY THERE'S ONLY 2 BIG CONTAINERS
+
+HALL EFFECT WAS SILLY- WORKED THE OPPOSITE OF EVERY POSSIBLE INSTRUCTION ONLINE.
+THE DISPENSERS WERE HARDDDD WE HAD TO MAKE PROTOTYPES AND TOSS THEM IN THE TRASH (ORIGINAL PINK ONE).
+AFTER A LOT OF PLANNING AND CALCULATING, AND A HUGE FAVOR FROM A FRIEND, WE FINALLY HAD THE WORKING DISPENSERS.
+BUT.
+MICRO SERVOS ARE SHIT.
+
+BUILDING THE SCALE IN A BALANCES WAY SO THE READINGS ARE CORRECT.
+
+FINDING THE RIGHT ANGLES FOR EACH SERVO. WE HAVE 5.
+
+I2C- SYNC ISSUES.
+
+Software:
+Bluetooth communication.Connecting to the bluetooth module takes a few tries.
+Reading from bluetooth sometimes doesn;t work correctly, had to add a lot of buffers.
+Creating an icon and images.
+Seperating between view and code behind.
+Parsing the commands.
+
+Sync scale and servo operations.
+Scale sometimes is imbalanced, we need to wait 2 cycles and then reset it before starting the actual weighting.
+
+
+Things to add:
+Vibrations to the containers to help dispense.
+Mixer.
+Remove Recipe.
+More secuirity.
+Sharing options.
