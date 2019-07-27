@@ -40,6 +40,7 @@ String str = "";
 void openSmallContainer(int container, int openAngle, int closeAngle, int numOfTimes)
 {
   str = "";
+  
   Serial.println("small container");
   for (int i = 0; i < numOfTimes; i++)
   {
@@ -104,14 +105,12 @@ void openSmallContainer(int container, int openAngle, int closeAngle, int numOfT
 
     //hitters(10);    
   }
-
-  str = "";
 }
 
 void OpenLiquidContainer(int container, int numOfTimes)
 {
   str = "";
-
+  
   for (int i = 0; i < numOfTimes; i++)
   {
     if (container == 7) // water
@@ -133,14 +132,12 @@ void OpenLiquidContainer(int container, int numOfTimes)
       delay(1000);
     }
   }
-
-  str = "";
 }
 
 void openBigContainer(int container, int openAngle, int closeAngle, int delayTime)
 {
+  str = "";
   int pos = 0;
-  str = ""; 
   
   //hitters(10);
 
@@ -190,8 +187,6 @@ void openBigContainer(int container, int openAngle, int closeAngle, int delayTim
   }
 
   //hitters(10);
-
-  str = "";
 }
 
 void setup() {
@@ -243,21 +238,24 @@ void receiveEvent(int bytes) {
       break;
     }
   }
-  Serial.println(str);
+  //Serial.println(str);
 }
 
 void parseCommand(String str)
 {
+  str.trim();
+  
+  if (str != "")
+    Serial.println(str);
+  
   if (str.startsWith("1o^") || str.endsWith("1o^"))
   {
     openBigContainer(1, container1Open, container1Close, 1000);
-    str = "";
   }
   
   if (str.startsWith("2o^") || str.endsWith("2o^"))
   {
     openBigContainer(2, container2Open, container2Close, 500);
-    str = "";
   }
 
   // #container;#times^ - for example: 4;004^
@@ -268,7 +266,6 @@ void parseCommand(String str)
       numTimesStr += str[i];
     int numTimes = numTimesStr.toInt();
     openSmallContainer(4, container4Open, container4Close, numTimes);
-    str = "";
   }
   if (str.startsWith("5;"))
   {
@@ -277,7 +274,6 @@ void parseCommand(String str)
       numTimesStr += str[i];
     int numTimes = numTimesStr.toInt();
     openSmallContainer(5, container5Open, container5Close, numTimes);
-    str = "";
   }
   if (str.startsWith("6;"))
   {
@@ -286,7 +282,6 @@ void parseCommand(String str)
       numTimesStr += str[i];
     int numTimes = numTimesStr.toInt();
     openSmallContainer(6, container6Open, container6Close, numTimes);
-    str = "";
   }
   if (str.startsWith("7;"))
   {
@@ -295,7 +290,6 @@ void parseCommand(String str)
       numTimesStr += str[i];
     int numTimes = numTimesStr.toInt();
     OpenLiquidContainer(7, numTimes);
-    str = "";
   }
   if (str.startsWith("8;"))
   {
@@ -304,7 +298,6 @@ void parseCommand(String str)
       numTimesStr += str[i];
     int numTimes = numTimesStr.toInt();
     OpenLiquidContainer(8, numTimes);
-    str = "";
   }
 }
 
